@@ -16,21 +16,30 @@ library(lubridate) #to read time
 library(vegan) #for species metrics
 library(tidyverse)
 library(tidyr)
-library(usdm) 
-library(psych) #for multivariate analysis 
-library(lmerTest) #for GLMM
-library(sjPlot) #for data visualisation
-library(MASS)
+#library(usdm) 
+#library(psych) #for multivariate analysis 
+#library(lmerTest) #for GLMM
+#library(sjPlot) #for data visualisation
+library(MASS) #for glm.nb
 library(DHARMa) #checkin model assumptions
 library(ggeffects) #to plot models
 library(glmmTMB) #for models
 library(performance)
 library(ggplot2)
-library(sjPlot)
-library(piecewiseSEM)
-library(gridExtra)
-library(ggsci)
-library(ggeffects)
+#library(sjPlot)
+library(piecewiseSEM) #to calculate Rsquared
+library(gridExtra)#for panelled graphs
+#library(ggsci)
+library(ggeffects) #for ggPredict
+#library(lme4)
+library(ggthemes) #for graph colours
+#library(cowplot) #for panelled graphs
+library(car) #for vif
+library(metR)
+library(viridis)
+library(emmeans) #for plotting the emmeans
+library(broom.mixed) #for extracting coefficients
+library(forestplot)
 
 ```
 
@@ -39,12 +48,21 @@ library(ggeffects)
 #setting directory
 setwd('/Users/tp/Desktop/Research_Project/Data')
 
-#input birdNET data
+#input birdNET data for experimental data 
 bird_data <- read.csv('Empirical_Data_Total_0.8.csv')
 names <- c('Start (s)', 'End (s)', 'Scientific.name', 'Common.name', 
            'Confidence', 'Date_Time', 'Sample_point')
 colnames(bird_data) <- names
 summary(bird_data)
+
+#input birdNET data for manipulation expt 
+bird_expt_data <- read.csv('expt_data_0.8.csv')
+bird_expt_data <- bird_expt_data[,c(2:8)]
+#changing the names of the columns
+names <- c('Start (s)', 'End (s)', 'Scientific.name', 'Common.name', 
+           'Confidence', 'Date_Time', 'Sample_point')
+colnames(bird_expt_data) <- names
+summary(bird_expt_data)
 
 #input noise data 
 noise_data <- read.csv('Noise.csv')
@@ -72,6 +90,13 @@ summary(light_data)
 #input weather data 
 weather_data <- read_excel('empirical_datasheet_170723.xlsx', sheet = 'Daily Data')
 summary(weather_data)
+
+#input manipulation expt
+expt_data <- read_excel('manipulation_datasheet_170723.xlsx', sheet = 'Daily Data')
+summary(expt_data)
+#input coordinates
+expt_coords <- read_excel('manipulation_datasheet_170723.xlsx', sheet = 'sample_points')
+summary(expt_coords)
 ```
 
 
@@ -172,12 +197,12 @@ bird_data_edited <- bird_data
 
 #converting the date and time into POSIX object
 bird_data_edited$Date_Time <- as.POSIXct(bird_data_edited$Date_Time, 
-                                          format = '%Y%m%d_%H%M%S')
+                                         format = '%Y%m%d_%H%M%S')
 
 #filtering out observations before 2nd 8:30 pm and after 9th 8:30 pm
 bird_data_edited <- bird_data_edited %>%
-  filter(Date_Time >= as.POSIXct("2023-05-02 20:30:00") & 
-         Date_Time <= as.POSIXct("2023-05-09 20:30:00"))
+ filter(Date_Time >= as.POSIXct("2023-05-02 20:30:00") & 
+     Date_Time <= as.POSIXct("2023-05-09 20:30:00"))
 
 # Count the number of observations for each species
 species_counts_0.8 <- table(bird_data_edited$Common.name)
@@ -234,7 +259,7 @@ bird_data_sr$Species_richness <- as.numeric(bird_data_sr$Species_richness)
 bird_total <- bird_data_sr %>% left_join(light_data_horizontal, by = 'Sample_point') %>% 
   left_join(noise_total, by = 'Sample_point') %>%
   left_join(light_data_vertical, by = 'Sample_point') %>%
-  left_join(sample_point_data[c(4,13,17)], by = 'Sample_point') %>% 
+  left_join(sample_point_data[c(2,4,6,7,13,17)], by = 'Sample_point') %>% 
   left_join(result_canopy_cover, by = 'Sample_point') %>% 
   left_join(result_tree_density, by = 'Sample_point')
 summary(bird_total)
@@ -242,6 +267,97 @@ summary(bird_total)
 #removings NAs
 bird_total <- na.omit(bird_total)
 ```
+
+
+```{r manipulation expt data manipulation}
+bird_expt_data_edited <- bird_expt_data
+
+#changing the C.a to ca
+unique(bird_expt_data_edited$Sample_point)
+bird_expt_data_edited$Sample_point <- gsub("C.a", "C", bird_expt_data_edited$Sample_point)
+unique(bird_expt_data_edited$Sample_point)
+
+#converting the date and time into POSIX object
+bird_expt_data_edited$Date_Time <- as.POSIXct(bird_expt_data_edited$Date_Time, 
+                                         format = '%Y%m%d_%H%M%S')
+summary(bird_expt_data_edited$Date_Time)
+
+#separating date and time 
+bird_expt_data_edited <- bird_expt_data_edited %>%
+  separate(Date_Time, into = c("Date", "Time"), sep = " ")
+summary(bird_expt_data_edited)
+
+#converting the date and time into POSIX object
+expt_data$Date <- as.POSIXct(expt_data$Date, 
+                                         format = '%Y%m%d')
+summary(expt_data$Date)
+
+#conditions for control
+condition_day1 <- (bird_expt_data_edited$Date) == "2023-05-18" & (bird_expt_data_edited$Time) > '20:30:00' |
+  (bird_expt_data_edited$Date) == "2023-05-19" & (bird_expt_data_edited$Time) < '20:30:00' |
+  (bird_expt_data_edited$Date) == "2023-05-25" & (bird_expt_data_edited$Time) > '20:30:00' |
+  (bird_expt_data_edited$Date) == "2023-05-26" & (bird_expt_data_edited$Time) < '20:30:00' |
+  (bird_expt_data_edited$Date) == "2023-06-02" & (bird_expt_data_edited$Time) > '20:30:00' |
+  (bird_expt_data_edited$Date) == "2023-06-03" & (bird_expt_data_edited$Time) < '20:30:00' 
+#conditions for Light 
+condition_day2 <- (bird_expt_data_edited$Date) == "2023-05-19" & (bird_expt_data_edited$Time) > '20:30:00' |
+  (bird_expt_data_edited$Date) == "2023-05-20" & (bird_expt_data_edited$Time) < '20:30:00' |
+  (bird_expt_data_edited$Date) == "2023-05-23" & (bird_expt_data_edited$Time) > '20:30:00' |
+  (bird_expt_data_edited$Date) == "2023-05-24" & (bird_expt_data_edited$Time) > '20:30:00' |
+  (bird_expt_data_edited$Date) == "2023-05-30" & (bird_expt_data_edited$Time) > '20:30:00' |
+  (bird_expt_data_edited$Date) == "2023-05-31" & (bird_expt_data_edited$Time) < '20:30:00'
+#conditions for sound
+condition_day3 <- (bird_expt_data_edited$Date) == "2023-05-22" & (bird_expt_data_edited$Time) > '20:30:00' |
+  (bird_expt_data_edited$Date) == "2023-05-23" & (bird_expt_data_edited$Time) < '20:30:00' |
+  (bird_expt_data_edited$Date) == "2023-06-01" & (bird_expt_data_edited$Time) > '20:30:00' |
+  (bird_expt_data_edited$Date) == "2023-06-02" & (bird_expt_data_edited$Time) > '20:30:00' |
+  (bird_expt_data_edited$Date) == "2023-06-07" & (bird_expt_data_edited$Time) > '20:30:00' |
+  (bird_expt_data_edited$Date) == "2023-06-08" & (bird_expt_data_edited$Time) < '20:30:00'
+#conditions for light and sound
+condition_day4 <- (bird_expt_data_edited$Date) == "2023-05-21" & (bird_expt_data_edited$Time) > '20:30:00' |
+  (bird_expt_data_edited$Date) == "2023-05-22" & (bird_expt_data_edited$Time) < '20:30:00' |
+  (bird_expt_data_edited$Date) == "2023-05-26" & (bird_expt_data_edited$Time) > '20:30:00' |
+  (bird_expt_data_edited$Date) == "2023-05-27" & (bird_expt_data_edited$Time) > '20:30:00' |
+  (bird_expt_data_edited$Date) == "2023-05-31" & (bird_expt_data_edited$Time) > '20:30:00' |
+  (bird_expt_data_edited$Date) == "2023-06-01" & (bird_expt_data_edited$Time) < '20:30:00'
+
+#adding the treament to the dataframe
+bird_expt_data_edited <- bird_expt_data_edited %>%
+  mutate(Treatment = case_when(
+    condition_day1 ~ 1,
+    condition_day2 ~ 2,
+    condition_day3 ~ 3,
+    condition_day4 ~ 4,
+    TRUE ~ NA_integer_  # Default value if no conditions are met
+  ))
+summary(bird_expt_data_edited)
+
+#removing all NAs
+bird_expt_data_edited <- na.omit(bird_expt_data_edited)
+summary(bird_expt_data_edited)
+
+#Adding 0 and 1 for light and sound variables
+bird_expt_data_edited <- bird_expt_data_edited %>%
+  mutate(light = ifelse(Treatment %in% c(2, 4), 1, 0),
+         noise = ifelse(Treatment %in% c(3, 4), 1, 0))
+print(bird_expt_data_edited)  # Set 'noise' to 1 if Value is 1
+
+# Count the number of observations for each species
+expt_counts_0.8 <- table(bird_expt_data_edited$Common.name)
+#species_counts_0.8 <- as.data.frame(species_counts_0.8)
+print(expt_counts_0.8)
+
+#Grouping the activity occurences of all species by data and sample point
+bird_activity2 <- bird_expt_data_edited %>%
+  group_by(Common.name, Date, Sample_point, Treatment, light, noise, ) %>%
+  summarize(total_call = n())
+summary(bird_activity2)
+
+#merging transect data
+bird_activity2 <- merge(bird_activity2, expt_data[,c(1,7)], by = 'Date')
+summary(bird_activity2)
+```
+
 
 
 ```{r species richness model assumptions}
@@ -290,7 +406,7 @@ var(bird_total$Distance_from_nearest_light) #13754.07
 var(bird_total$average_canopy_cover) #0.062
 var(bird_total$tree_density) #0.0013
 
-plot(bird_total[,c(3:11)])
+plot(bird_total[,c(3:7,11:14)])
 
 #normal distribution 
 hist(bird_total$Species_richness)
@@ -298,103 +414,137 @@ hist(bird_total$Species_richness)
 #number of 0s 
 num_zeros <- sum(bird_total == 0)
 print(num_zeros)
-#No 0s
+#7 0s
 ```
 
 
 ```{r collinearity}
 #checking collinearity between the variables
-cor(bird_total[,c(3:11)])
+cor(bird_total[,c(3:7,11:14)])
 #Distance_from_road is highly collinear with Distance to light
 #use distance to nearest light
 #Horizontal lux values is highly collinear with vertical lux values
 #use vertical lux values
 
-#VIF
-vif(bird_total[,c(3:11)])
+#VIF needs to be CHANGED
+#vif(bird_total[,c(3:7,11:14)])
 #Distance from nearest light = 4.12
 #threshold = 5
 ```
 
 
 ```{r species richness model}
-#poisson model
+#overall effect - poisson model
 M1 <- glm(Species_richness ~ scale(Vertical_lux_values)*scale(Overall_average_amplitude) + 
-           scale(Distance_from_nearest_light) + scale(tree_density), family = 'poisson', 
+           scale(Distance_from_nearest_light) + scale(tree_density) + 
+            scale(average_canopy_cover) + as.factor(Site), family = 'poisson', 
           data=bird_total)
-summary(M1) #dispersion parameter = 1.98
-rsquared(M1) #0.51
+summary(M1) 
 #model validation
-plot(M1)
-testResiduals(M1) #outlier and slight deviation
+check_overdispersion(M1) #1.66
+testResiduals(M1) #good
 testQuantiles(M1) #good
-#poisson has better residuals
+testSpatialAutocorrelation(M1, x=bird_total$Long, y=bird_total$Lat) #no spatial autocorrelation
+testZeroInflation(M1) #no zero inflation
 
-#plotting interactions
-plotA <- plot_model(M1, type = 'pred', terms = c('z.Vertical_lux_values', 'z.Overall_average_amplitude'))
-#adding ggplot elements
-plot1 <- plotA + xlab('Vertical Lux Values (lx)') + ylab('Species Richness') +
-  labs(color = "Overall Noise Amplitude") + 
-  ggtitle('Effect of Lux Values and Overall Average Amplitude\non Species Richness') +
-  coord_cartesian(ylim = c(0, 80)) + xlim(0, 4) + theme_minimal() + theme(
-    plot.title = element_text(size = 22, hjust = 0.5),  # Customize title size and center it horizontally
-    axis.title.x = element_text(size = 18),  # Customize x-axis title size
-    axis.title.y = element_text(size = 18),
-    legend.title = element_text(size = 16),
-    plot.title.position = 'plot'
-  )
+#overall effect - negative binomial 
+M2 <- glm.nb(Species_richness ~ scale(Vertical_lux_values)*scale(Overall_average_amplitude)*Site + 
+           scale(Distance_from_nearest_light) + scale(tree_density) + 
+             scale(average_canopy_cover), data=bird_total)
+summary(M2) 
+rsquared(M2) #0.56
+#model validation
+check_overdispersion(M2) #1.21
+testResiduals(M2) #good
+testQuantiles(M2) #good
+testSpatialAutocorrelation(M2, x=bird_total$Long, y=bird_total$Lat) #no spatial autocorrelation
+testZeroInflation(M2) #no zero inflation
+
+#dropping the interaction term (IMP)
+M3 <- glm.nb(Species_richness ~ scale(Vertical_lux_values) + scale(Overall_average_amplitude) + 
+           scale(Distance_from_nearest_light) + scale(tree_density) + 
+             scale(average_canopy_cover) + as.factor(Site), data=bird_total)
+summary(M3) 
+rsquared(M3) #0.51
+#model validation
+check_overdispersion(M3) #1.18
+testResiduals(M3) #good
+testQuantiles(M3) #good
+testSpatialAutocorrelation(M3, x=bird_total$Long, y=bird_total$Lat) #no spatial autocorrelation
+testZeroInflation(M3) #no zero inflation
+
+#Plotting the model
+plot1 <- ggplot(bird_total,aes(y=Species_richness,x=Overall_average_amplitude, color = Site)) + geom_point() + 
+  geom_smooth(method="lm") + labs(y = 'Species Richness', x = 'Overall Anthropogenic Noise') + 
+  scale_color_tableau() + theme_minimal() +
+  theme(axis.text = element_text(size = 14, family = 'Times New Roman'), 
+        axis.title = element_text(size=22, family = 'Times New Roman'),
+        legend.text = element_text(size = 18, family = 'Times New Roman'),
+        legend.title = element_text(size = 18, family = 'Times New Roman'))
 print(plot1)
 ggsave('species_model.jpg', plot1)
 
 #Models for daytime effect - poisson
-M2 <- glmmTMB(Species_richness ~ scale(Day_average_amplitude) + scale(tree_density), 
-              family='poisson', data=bird_total)
-summary(M2) 
-#model validation
-check_overdispersion((M2)) #overdispersion = 2.21
-testResiduals(M2) #outlier and slight deviation
-testQuantiles(M2) #no problems
-
-#model for daytime effect - negative binomial 
-M3 <- glm.nb(Species_richness ~ scale(Day_average_amplitude) + scale(tree_density), 
-              data=bird_total)
-summary(M3)
-rsquared(M3) #
-#model validation
-check_overdispersion(M3) #overdispersion = 1.05
-testResiduals(M3) #outlier
-testQuantiles(M3) #good
-
-#Models for nighttime effect 
-M4 <- glmmTMB(Species_richness ~ scale(Night_average_amplitude)*scale(Vertical_lux_values) + 
-                scale(Distance_from_nearest_light) + scale(tree_density), 
-              family='poisson', data=bird_total)
+M4 <- glm(Species_richness ~ scale(Day_average_amplitude) + scale(tree_density) + 
+            scale(average_canopy_cover) + as.factor(Site), family='poisson', 
+          data=bird_total)
 summary(M4) 
 #model validation
-check_overdispersion(M4) #2.13
-testResiduals(M4) #outliers and deviation
+check_overdispersion(M4) #overdispersion = 1.56
+testResiduals(M4) #deviation (p=0), bad plots
 testQuantiles(M4) #no problems
+testSpatialAutocorrelation(M4, x=bird_total$Long, y=bird_total$Lat) #no spatial autocorrelation
+testZeroInflation(M4) #no zero inflation
+
+#model for daytime effect - negative binomial (IMP)
+M5 <- glm.nb(Species_richness ~ scale(Day_average_amplitude) + scale(tree_density) + 
+               scale(average_canopy_cover) + as.factor(Site), data=bird_total)
+summary(M5)
+rsquared(M5) # 0.58
+#model validation
+check_overdispersion(M5) #overdispersion = 1.17
+testResiduals(M5) #good
+testQuantiles(M5) #good
+testSpatialAutocorrelation(M5, x=bird_total$Long, y=bird_total$Lat) #no spatial autocorrelation
+testZeroInflation(M5) #no zero inflation
+
+#Models for nighttime effect 
+M6 <- glm(Species_richness ~ scale(Night_average_amplitude)*scale(Vertical_lux_values) + 
+                scale(Distance_from_nearest_light) + scale(tree_density) + 
+            scale(average_canopy_cover) + as.factor(Site), family='poisson', 
+          data=bird_total)
+summary(M6) 
+#model validation
+check_overdispersion(M6) #1.90
+testResiduals(M6) #deviation significant (p=0.016)
+testQuantiles(M6) #good ish
+testSpatialAutocorrelation(M6, x=bird_total$Long, y=bird_total$Lat) #no spatial autocorrelation
+testZeroInflation(M6) #no zero inflation
 
 #Models for nighttime effect - negative binomial model
-M5 <- glmmTMB(Species_richness ~ scale(Night_average_amplitude)*scale(Vertical_lux_values) + 
-                scale(Distance_from_nearest_light) + scale(tree_density), family='nbinom2', 
-          data=bird_total)
-summary(M5)
+M7 <- glm.nb(Species_richness ~ scale(Vertical_lux_values)*scale(Night_average_amplitude) + 
+                scale(Distance_from_nearest_light) + scale(tree_density) + 
+               scale(average_canopy_cover) + as.factor(Site), data=bird_total)
+summary(M7)
 #model validation
-check_overdispersion(M5) #1.12
-testResiduals(M5) #outlier
-testQuantiles(M5) #no problems
+check_overdispersion(M7) #1.19
+testResiduals(M7) #good
+testQuantiles(M7) #good
+testSpatialAutocorrelation(M7, x=bird_total$Long, y=bird_total$Lat) #no spatial autocorrelation
+testZeroInflation(M7) #no zero inflation
 
-#Dropping the interaction term
-M6 <- glm.nb(Species_richness ~ scale(Night_average_amplitude) + 
-               scale(Vertical_lux_values) + scale(Distance_from_nearest_light) + 
-               scale(tree_density), data=bird_total)
-summary(M6)
-rsquared(M6)
+#Dropping the interaction term (IMP)
+M8 <- glm.nb(Species_richness ~ scale(Night_average_amplitude) + scale(Vertical_lux_values) + 
+               scale(Distance_from_nearest_light) + scale(tree_density) + 
+               scale(average_canopy_cover) + as.factor(Site), data=bird_total)
+summary(M8)
+rsquared(M8)
 #model validation
-check_overdispersion(M6) #1.10
-testResiduals(M6) #outlier
-testQuantiles(M6) #no problems
+check_overdispersion(M8) #1.16
+testResiduals(M8) #outlier
+testQuantiles(M8) #good ish
+testSpatialAutocorrelation(M8, x=bird_total$Long, y=bird_total$Lat) #no spatial autocorrelation
+testZeroInflation(M8) #no zero inflation
 ```
 
 
@@ -413,7 +563,7 @@ summary(bird_activity)
 bird_activity_total <- bird_activity %>% left_join(light_data_horizontal, by = 'Sample_point') %>% 
   left_join(noise_total, by = 'Sample_point') %>%
   left_join(light_data_vertical, by = 'Sample_point') %>%
-  left_join(sample_point_data[c(2,4,13,17)], by = 'Sample_point') %>% 
+  left_join(sample_point_data[c(2,4,6,7,13,17)], by = 'Sample_point') %>% 
   left_join(result_tree_density, by = 'Sample_point') %>%
   left_join(result_canopy_cover, by = 'Sample_point') 
 summary(bird_activity_total)
@@ -426,6 +576,7 @@ print(sd(bird_activity_total$Day_average_amplitude))
 print(sd(bird_activity_total$Night_average_amplitude))
 print(sd(bird_activity_total$tree_density))
 print(sd(bird_activity_total$Distance_from_nearest_light))
+print(sd(bird_activity_total$average_canopy_cover))
 #missing canopy cover
 
 #converting into dataframe 
@@ -472,94 +623,234 @@ cor(bird_activity_total[,c(5:9,11:14)])
 #Night amplitude and overall amplitude are highly collinear 
 
 #vif
-vif(bird_activity_total[,c(5:9,11:14)])
+#vif(bird_activity_total[,c(5:9,11:14)])
 #All amplitudes have high VIFs 
 ```
 
 
 ```{r bird activity model}
 #bird activity model with overall noise
-M7 <- glmmTMB(total_call ~ scale(Vertical_lux_values)*scale(Overall_average_amplitude) + 
-              scale(tree_density) + scale(Distance_from_nearest_light) + Site + 
-                (scale(Vertical_lux_values)+scale(Overall_average_amplitude)|Common.name) + 
-                (1|Date), data = bird_activity_total, 
-              family = 'poisson')
-summary(M7)
+M9 <- glmmTMB(total_call ~ scale(Vertical_lux_values)*scale(Overall_average_amplitude) + 
+              scale(tree_density) + scale(average_canopy_cover) + 
+              scale(Distance_from_nearest_light) + as.factor(Site) + 
+              (scale(Vertical_lux_values) + scale(Overall_average_amplitude)|Common.name) + 
+                (1|Date), data = bird_activity_total, family = 'poisson')
+summary(M9)
 #model validation
-check_overdispersion(M7) #17.84
-testResiduals(M7) #outlier and significant deviation
-testQuantiles(M7) #bad
+check_overdispersion(M9) #17.03
+testResiduals(M9) #significant deviation (p=0)
+testQuantiles(M9) #bad
+#testSpatialAutocorrelation(M9, x=bird_activity_total$Long, y=bird_activity_total$Lat) 
+testZeroInflation(M9) #no zero inflation
 
-#bird activity model with overall noise, negative binomial model
-M8 <- glmmTMB(total_call ~ scale(Vertical_lux_values)*scale(Overall_average_amplitude) + 
-              scale(tree_density) + scale(Distance_from_nearest_light) + Site + 
-                (scale(Vertical_lux_values)+scale(Overall_average_amplitude)|Common.name) + 
-                (1|Date), data = bird_activity_total, family = 'nbinom2')
-summary(M8)
-rsquared(M8) # marginal = 0.01550366, conditional = 0.5050288
+#bird activity model with overall noise, negative binomial model (IMP)
+M10 <- glmmTMB(total_call ~ scale(Vertical_lux_values)*scale(Overall_average_amplitude)*Site +
+              scale(tree_density) + scale(average_canopy_cover) + 
+                scale(Distance_from_nearest_light)  + 
+                (scale(Vertical_lux_values)+scale(Overall_average_amplitude)+Site|Common.name) + 
+                (1|Date), data = bird_activity_total, family = 'nbinom2') 
+#save(M10, file='bird_activity_overall.Rdata')
+summary(M10)
+rsquared(M10) # 
+confint(M10)
 #model validation
-check_overdispersion(M8) #1.40
-testResiduals(M8) #outlier and slight deviation (barely significant)
-testQuantiles(M8) #not good 
+check_overdispersion(M10) #1.36
+testResiduals(M10) #no deviation significant
+testQuantiles(M10) #eh
+testZeroInflation(M10) #no zero inflation
 
-#plotting the interaction term (need to change)
-plotB <- plot_model(M8, type = 'pred', terms = c('Vertical_lux_values', 'Overall_average_amplitude'))
-plot2 <- plotB + xlab('Vertical Lux Values (lx)') + ylab('Total Call per Species per Site') +
-  labs(color = "Overall Noise Amplitude") + 
-  ggtitle('Effect of Lux Values and Overall Average Amplitude\non Species Richness') +
-  coord_cartesian(ylim = c(0, 10)) + xlim(0, 4) + theme_minimal() + theme(
-    plot.title = element_text(size = 22, hjust = 0.5),  # Customize title size and center it horizontally
-    axis.title.x = element_text(size = 18),  # Customize x-axis title size
-    axis.title.y = element_text(size = 18),
-    legend.title = element_text(size = 16),
-    plot.title.position = 'plot'
-  )
-print(plot2)
-ggsave('total_activity.jpg', plot2)
+#
+ranef(M10)
+
+#subset Silwood data points
+bird_activity_total.s <- subset(bird_activity_total, Site == 'Silwood')
+unique(bird_activity_total.s$Site)
+
+#
+#bird activity model with overall noise, negative binomial model (IMP)
+M10.s <- glmmTMB(total_call ~ scale(Vertical_lux_values)*scale(Overall_average_amplitude) +
+              scale(tree_density) + scale(average_canopy_cover) + 
+                scale(Distance_from_nearest_light)  + 
+                (scale(Vertical_lux_values)+scale(Overall_average_amplitude)|Common.name) + 
+                (1|Date), data = bird_activity_total.s, family = 'nbinom2') 
+summary(M10.s)
 
 #bird activity model with daytime noise
-M9 <- glmmTMB(total_call ~ scale(Day_average_amplitude) + scale(tree_density) + 
-                Site + (scale(Day_average_amplitude)|Common.name) + (1|Date), 
+M11 <- glmmTMB(total_call ~ scale(Day_average_amplitude) + scale(tree_density) + 
+                scale(average_canopy_cover) + as.factor(Site) + 
+                (scale(Day_average_amplitude)|Common.name) + (1|Date), 
               data = bird_activity_total, family = 'poisson')
-summary(M9)
-#model validation 
-check_overdispersion(M9) #20.96
-testResiduals(M9) #outlier and significant deviation 
-testQuantiles(M9) #ehhhh (parallel) 
-
-#bird activity model with daytime noise - negative binomial 
-M10 <- glmmTMB(total_call ~ scale(Day_average_amplitude) + scale(tree_density) + 
-                 Site + (scale(Day_average_amplitude)|Common.name) + (1|Date), 
-               data = bird_activity_total, family = 'nbinom2')
-summary(M10)
-rsquared(M10) # marginal = 0.006920945, conditional = 0.4643629
-#model validation 
-check_overdispersion(M10) #1.66
-testResiduals(M10) #outlier and significant deviation
-testQuantiles(M10) #not good 
-
-#bird activity model with nighttime noise and light
-M11 <- glmmTMB(total_call ~ scale(Night_average_amplitude)*scale(Vertical_lux_values) + 
-                 scale(Distance_from_nearest_light) + scale(tree_density) + Site + 
-                 (scale(Night_average_amplitude)+scale(Vertical_lux_values)|Common.name) + 
-                 (1|Date), data = bird_activity_total, family = 'poisson')
 summary(M11)
 #model validation 
-check_overdispersion(M11) #18.06
-testResiduals(M11) #outlier and deviation (barely significant)
-testQuantiles(M11) #not bad
+check_overdispersion(M11) #19.14
+testResiduals(M11) #significant deviation 
+testQuantiles(M11) #bad
+testZeroInflation(M11) #no zero inflation
 
-#bird activity model with nighttime noise and light - negative binomial
-M12 <- glmmTMB(total_call ~ scale(Night_average_amplitude)*scale(Vertical_lux_values) + 
-                 scale(Distance_from_nearest_light) + scale(tree_density) + Site + 
+#bird activity model with daytime noise - negative binomial (IMP)
+M12 <- glmmTMB(total_call ~ scale(Day_average_amplitude) + scale(tree_density) + 
+                scale(average_canopy_cover) + as.factor(Site) + 
+                (scale(Day_average_amplitude)|Common.name) + (1|Date), 
+              data = bird_activity_total, family = 'nbinom2')
+summary(M12)
+rsquared(M12) # marginal = 0.01361566, conditonal =	0.4668447
+#model validation 
+check_overdispersion(M12) #1.59
+testResiduals(M12) #significant deviation
+testQuantiles(M12) #good ish 
+testZeroInflation(M12) #no zero inflation
+
+#bird activity model with nighttime noise and light
+M13 <- glmmTMB(total_call ~ scale(Night_average_amplitude)*scale(Vertical_lux_values) + 
+                 scale(Distance_from_nearest_light) + scale(tree_density) + 
+                 scale(average_canopy_cover) + as.factor(Site) + 
+                 (scale(Night_average_amplitude)+scale(Vertical_lux_values)|Common.name) + 
+                 (1|Date), data = bird_activity_total, family = 'poisson')
+summary(M13)
+#model validation 
+check_overdispersion(M13) #17.88
+testResiduals(M13) #deviation (significant)
+testQuantiles(M13) #good ish
+testZeroInflation(M13) #no zero inflation
+
+#bird activity model with nighttime noise and light - negative binomial (IMP)
+M14 <- glmmTMB(total_call ~ scale(Night_average_amplitude)*scale(Vertical_lux_values) + 
+                 scale(Distance_from_nearest_light) + scale(tree_density) + 
+                 scale(average_canopy_cover) + as.factor(Site) + 
                  (scale(Night_average_amplitude)+scale(Vertical_lux_values)|Common.name) + 
                  (1|Date), data = bird_activity_total, family = 'nbinom2')
-summary(M12)
-rsquared(M12)
+summary(M14)
+rsquared(M14) #marginal = 0.01615153, conditional = 	0.4874419
 #model validation 
-check_overdispersion(M12) #1.31
-testResiduals(M12) #outlier and significant deviation 
-testQuantiles(M12) #not good 
+check_overdispersion(M14) #1.31
+testResiduals(M14) #significant deviation 
+testQuantiles(M14) #not good 
+testZeroInflation(M14) #no zero inflation
+```
+
+
+```{r bird activity models - figures}
+boxplot <- ggplot(bird_activity_total, aes(x = Site, y = total_call)) +
+  geom_boxplot()
+boxplot
+
+#Plotting the interaction graph
+set.seed(0)
+pred2 <- ggpredict(M10, terms = c('Vertical_lux_values', 'Overall_average_amplitude')) 
+plot2 <- plot(pred2) +
+  labs(y = 'Total Bird Activity', x = 'Vertical Light Values (lux)',
+       title = NULL, color = 'Overall Anthropogenic Noise') +
+  theme_minimal() +
+  scale_color_viridis_d() +  # Remove the color legend
+  scale_fill_viridis_d() +  # Apply Viridis color palette for fill and show fill legend
+  theme(
+    axis.text = element_text(size = 16, family = 'Times New Roman'),
+    axis.title = element_text(size = 20, family = 'Times New Roman'),
+    legend.text = element_text(size = 16, family = 'Times New Roman'),
+    legend.title = element_text(size = 18, family = 'Times New Roman'),
+    legend.position = c(0.35, 0.8)
+  ) 
+plot2
+
+#Reversing the interaction term
+set.seed(0)
+pred3 <- ggpredict(M10, terms = c('Overall_average_amplitude', 'Vertical_lux_values[1,0.5,0]')) 
+plot3 <- plot(pred3) + labs(y = 'Total Bird Activity', x = 'Overall Anthropogenic Noise', 
+                            title=NULL, color = 'Vertical Light Values (lux)') + 
+  theme_minimal() + scale_color_viridis_d(direction=-1) + scale_fill_viridis_d(direction=-1) + 
+  theme(axis.text = element_text(size = 16, family = 'Times New Roman'), 
+        axis.title = element_text(size=20, family = 'Times New Roman'),
+        legend.text = element_text(size = 16, family = 'Times New Roman'),
+        legend.title = element_text(size = 18, family = 'Times New Roman'),
+        legend.position = c(0.35, 0.8)) + coord_cartesian(ylim = c(0,17))
+plot3
+
+# prep data for heatmap 1
+set.seed(0)
+pred <- expand.grid(Vertical_lux_values = seq(min(bird_activity_total$Vertical_lux_values), max(bird_activity_total.s$Vertical_lux_values), length.out=100),
+                    Overall_average_amplitude = 
+                      seq(min(bird_activity_total$Overall_average_amplitude), 
+                          max(bird_activity_total$Overall_average_amplitude), length.out=100)) 
+
+pred <- mutate(pred, tree_density = 0)
+pred <- mutate(pred, average_canopy_cover = 0)
+pred <- mutate(pred, Site = 'Silwood')
+pred <- mutate(pred, Distance_from_nearest_light = 0)
+pred <- mutate(pred, Common.name = 0)
+pred <- mutate(pred, Date = 0)
+
+# use data from model
+set.seed(0) #is this necessary
+pred <- mutate(pred, predictions1 = unlist(predict(M10, pred, type = "response", allow.new.levels = TRUE)))
+pred$predictions1 <- log(pred$predictions1)
+
+#just taking a look
+contourplot(predictions1 ~ Vertical_lux_values*Overall_average_amplitude, pred)
+
+# plot heatmap with contours
+plot4 <- ggplot(mutate(pred, incidence_probability = as.numeric(predictions1)), 
+                aes(x = Vertical_lux_values, y = Overall_average_amplitude, 
+                            z = incidence_probability)) +  
+  geom_text_contour(skip = 0, size = 8) +
+  geom_tile(aes(fill = incidence_probability)) + geom_contour( colour = 'black', linewidth = 1)  + 
+  scale_x_continuous(expand = expansion(mult = c(0, 0))) + 
+  scale_y_continuous(expand = expansion(mult = c(0, 0))) + 
+  scale_fill_viridis(direction=1, name = 'Total Bird Calls', limits=c(-10,6)) +
+  theme_classic() +
+  labs(y = 'Overall Anthropogenic Noise', x = 'Vertical Light (lux)') +  
+  theme(axis.text = element_text(size = 28, family = 'Times New Roman'), 
+        axis.title = element_text(size = 28, family = 'Times New Roman'), 
+        legend.text = element_text(size = 24, family = 'Times New Roman'),
+        legend.title = element_text(size = 26, family = 'Times New Roman'), 
+        legend.position = 'bottom') 
+
+plot4
+
+#Saving the plot
+#ggsave('activity_model_contour.jpg', plot5, width = 8, height = 7, units = "in")
+
+# prep data for heatmap 2
+set.seed(0)
+pred1.2 <- expand.grid(Vertical_lux_values = seq(min(bird_activity_total$Vertical_lux_values), max(bird_activity_total$Vertical_lux_values), length.out=100),
+                    Overall_average_amplitude = 
+                      seq(min(bird_activity_total$Overall_average_amplitude), 
+                          max(bird_activity_total$Overall_average_amplitude), length.out=100)) 
+pred1.2 <- mutate(pred1.2, tree_density = 0)
+pred1.2 <- mutate(pred1.2, average_canopy_cover = 0)
+pred1.2 <- mutate(pred1.2, Site = 'Barnes')
+pred1.2 <- mutate(pred1.2, Distance_from_nearest_light = 0)
+pred1.2 <- mutate(pred1.2, Common.name = 0)
+pred1.2 <- mutate(pred1.2, Date = 0)
+
+# use data from model
+set.seed(0) #is this necessary
+pred1.2 <- mutate(pred1.2, predictions2 = unlist(predict(M10, pred1.2, type = "response", allow.new.levels = TRUE)))
+pred1.2$predictions2 <- log(as.numeric(pred1.2$predictions2))
+
+# plot heatmap with contours
+plot5 <- ggplot(mutate(pred1.2, incidence_probability = as.numeric(predictions2)), 
+                aes(x = Vertical_lux_values, y = Overall_average_amplitude, 
+                    z = incidence_probability)) + 
+  geom_tile(aes(fill = incidence_probability)) + 
+  geom_contour(colour = 'black', linewidth = 1) +
+  geom_text_contour(skip = 0, size = 8) + 
+  scale_fill_viridis(direction = 1, name = 'Total Bird Calls', limits = c(-10, 6)) +
+  scale_x_continuous(expand = expansion(mult = c(0, 0))) + 
+  scale_y_continuous(expand = expansion(mult = c(0, 0))) +  
+  theme_classic() + 
+  labs(y = 'Overall Anthropogenic Noise', x = 'Vertical Light (lux)') +  
+  theme(axis.text = element_text(size = 28, family = 'Times New Roman'), 
+        axis.title = element_text(size = 28, family = 'Times New Roman'), 
+        legend.text = element_text(size = 24, family = 'Times New Roman'),
+        legend.title = element_text(size = 26, family = 'Times New Roman'), 
+        legend.position = 'bottom')
+
+plot5
+
+
+#Combining and exporting the graph
+plot6 <- grid.arrange(plot4, plot5, ncol=2)
+ggsave('activity_model.jpg', plot6, width = 16, height = 7, units = "in")
 ```
 
 
@@ -585,7 +876,13 @@ zapsmall(cor(pcoa_axes), digits=10)
 pcoa_axes_df <- data.frame(pcoa_axes)
 pcoa_axes_df$Sample_point <- rownames(pcoa_axes)
 # Merge onto the sites data - the PCoA axes get the labels X1 to X8
-sites <- merge(bird_activity_total, pcoa_axes_df, by='Sample_point') #UNNECESSARY
+sites <- merge(light_data_vertical, pcoa_axes_df, by='Sample_point')
+sites <- merge(noise_total, sites, by='Sample_point')
+sites <- merge(result_tree_density, sites, by = 'Sample_point')
+#Merging coordinates to the dataset
+sites <- merge(sample_point_data[c(2,4,6:7,17)], sites, by='Sample_point')
+summary(sites)
+sites<- na.omit(sites)
 
 #Plotting the PCoA axes for overall average amplitude
 ggplot(sites, aes(bray_raw_pcoa_1, bray_raw_pcoa_2)) +
@@ -617,6 +914,21 @@ ggplot(sites, aes(bray_raw_pcoa_1, bray_raw_pcoa_2)) +
   scale_colour_gradientn(colors=hcl.colors(20)) + 
   theme_classic() 
 
+#Plotting the PCoA axes for vertical lux values
+ggplot(sites, aes(log(Vertical_lux_values + 1), bray_raw_pcoa_1)) + geom_point() + 
+  geom_smooth(method='lm')
+
+#Plotting the response variables 
+#Vertical lux
+hist(sites$Vertical_lux_values)
+#Transformation
+hist(log(sites$Vertical_lux_values)) #looks better?
+hist((sites$Vertical_lux_values)^1/2) #nope
+hist(sqrt(sites$Vertical_lux_values)) #nope
+hist(1/(sites$Vertical_lux_values)) #looks better?
+#
+hist(sites$Night_average_amplitude)
+
 #
 par(mfrow=c(1,2))
 eig <- pcoa$eig[pcoa$eig >0] 
@@ -626,27 +938,148 @@ barplot(cumsum(eig)/ sum(eig), main='Cumulative variation')
 # Print the percentage variation of the first 8 
 head(sprintf('%0.2f%%', (eig / sum(eig)) * 100), n=8)
 
+```
+
+
+```{r community composition - models}
 # Model community composition as a function of overall light and noise 
-mod_cc1 <- lm(bray_raw_pcoa_1 ~ scale(Vertical_lux_values)*scale(Overall_average_amplitude) + scale(Distance_from_nearest_light), data=sites)
+
+mod_cc1 <- lm(bray_raw_pcoa_1 ~ (Vertical_lux_values)*(Overall_average_amplitude) + (Distance_from_nearest_light) + Site, data=sites)
 summary(mod_cc1)
 #model validation
-plot(mod_cc1)
+plot(mod_cc1) #look good
+testResiduals(mod_cc1) #looks good
+testQuantiles(mod_cc1) #looks good
+#Checking for spatial autocorrelation
+testSpatialAutocorrelation(mod_cc1, x = sites$Long, y = sites$Lat) #no spatial autocorrelation
+
+#Dropping the interactiont term
+mod_cc1.2 <- lm(bray_raw_pcoa_1 ~ (Vertical_lux_values) + (Overall_average_amplitude) + (Distance_from_nearest_light) + Site, data=sites)
+summary(mod_cc1.2)
+#model validation
+plot(mod_cc1.2) #look good
+testResiduals(mod_cc1.2) #looks good
+testQuantiles(mod_cc1.2) #looks good
+#Checking for spatial autocorrelation
+testSpatialAutocorrelation(mod_cc1.2, x = sites$Long, y = sites$Lat) #no spatial autocorrelation
 
 # Model community composition as a function of daytime noise 
-mod_cc2 <- lm(bray_raw_pcoa_1 ~ scale(Day_average_amplitude), data=sites)
+mod_cc2 <- lm(bray_raw_pcoa_1 ~ (Day_average_amplitude) + Site, data=sites)
 summary(mod_cc2)
 #model validation
-plot(mod_cc2)
+plot(mod_cc2) #look good
+testResiduals(mod_cc2) #looks good
+testQuantiles(mod_cc2) #looks good
+#Checking for spatial autocorrelation
+testSpatialAutocorrelation(mod_cc2, x = sites$Long, y = sites$Lat) #no spatial autocorrelation
 
 # Model community composition as a function of nighttime noise and light
-mod_cc3 <- lm(bray_raw_pcoa_1 ~ scale(Vertical_lux_values)*scale(Night_average_amplitude) + 
-                scale(Distance_from_nearest_light), data=sites)
+
+mod_cc3 <- lm(bray_raw_pcoa_1 ~ (Vertical_lux_values)*(Night_average_amplitude) + 
+                (Distance_from_nearest_light) + Site, data=sites)
 summary(mod_cc3)
 #model validation
-plot(mod_cc3)
+plot(mod_cc3) #points very close to cook's distance, not quite starry night 
+testResiduals(mod_cc3) #looks good
+testQuantiles(mod_cc3) #looks good
+#Checking for spatial autocorrelation
+testSpatialAutocorrelation(mod_cc3, x = sites$Long, y = sites$Lat) #no spatial autocorrelation
+
+#Dropping the interaction term
+mod_cc3.2 <- lm(bray_raw_pcoa_1 ~ scale(Vertical_lux_values) + scale(Night_average_amplitude) + 
+                scale(Distance_from_nearest_light) + Site, data=sites)
+summary(mod_cc3.2)
+#model validation
+plot(mod_cc3.2) #not quite starry night
+testResiduals(mod_cc3.2) #looks good
+testQuantiles(mod_cc3.2) #looks good
+#Checking for spatial autocorrelation
+testSpatialAutocorrelation(mod_cc3.2, x = sites$Long, y = sites$Lat) #no spatial autocorrelation
 
 # Plot the model
-plot(ggpredict(mod_cc3, terms = c('z.Vertical_lux_values','z.Night_average_amplitude')))
+plot(ggpredict(mod_cc3, terms = c('Vertical_lux_values','Night_average_amplitude', 'Distance_from_nearest_light')))
+```
+
+
+```{r manipulation expt model}
+#Removing the Control point
+bird_activity3 <- bird_activity2 %>% filter(!(Sample_point %in% c("C")))
+summary(bird_activity3)
+unique(bird_activity3$Sample_point)
+
+#outliers 
+boxplot(bird_activity3$total_call)
+#multiple outliers
+
+#Homogeneity of variances
+var(bird_activity3$total_call) #106.39
+
+#normal distribution
+hist(bird_activity2$total_call)
+#poisson distribution
+
+#poisson model
+Man1 <- glmmTMB(glmmTMB(total_call ~ as.factor(light)*as.factor(noise)*Sample_point + 
+                          Transect + (1|Common.name), data = bird_activity3, 
+                        family = 'poisson'))
+summary(Man1)
+#model assumptions
+check_overdispersion(Man1) #overdispersed
+testResiduals(Man1) #significant deviation
+testQuantiles(Man1) #good ish
+
+#negative binomial model (IMP)
+Man2 <- glmmTMB(total_call ~ as.factor(light)*as.factor(noise)*Sample_point + Transect + 
+                  (1|Common.name), data = bird_activity3, family = 'nbinom2')
+
+summary(Man2)
+rsquared(Man2) #0.199874	0.5762626
+check_singularity(Man2)
+#model assumptions
+check_overdispersion(Man2) #no overdispersion
+testResiduals(Man2) #deviation (p = 0.04)
+testQuantiles(Man2) #good ish
+confint(Man2)
+
+#plots
+```
+
+
+```{r manipulation expt models - figures}
+# Extract the coefficients and confidence intervals using broom.mixed
+effect_data <- tidy(Man2, effects = "fixed")
+
+# Define the desired order of coefficients
+desired_order1 <- c("as.factor(light)1", "as.factor(light)1:Sample_point2", "as.factor(light)1:Sample_point3", "as.factor(light)1:Sample_point4", "as.factor(light)1:Sample_point5", "as.factor(light)1:Sample_point6")
+# Reorder the levels of the 'term' variable
+effect_data$term1 <- factor(effect_data$term, levels = desired_order1)
+
+# Define the desired order of coefficients
+desired_order2 <- c("as.factor(noise)1", "as.factor(noise)1:Sample_point2", "as.factor(noise)1:Sample_point3", "as.factor(noise)1:Sample_point4", "as.factor(noise)1:Sample_point5", "as.factor(noise)1:Sample_point6")
+# Reorder the levels of the 'term' variable
+effect_data$term2 <- factor(effect_data$term, levels = desired_order2)
+
+# Define the desired order of coefficients
+desired_order3 <- c("as.factor(noise)1", "as.factor(noise)1:Sample_point2", "as.factor(noise)1:Sample_point3", "as.factor(noise)1:Sample_point4", "as.factor(noise)1:Sample_point5", "as.factor(noise)1:Sample_point6")
+# Reorder the levels of the 'term' variable
+effect_data$term2 <- factor(effect_data$term, levels = desired_order2)
+
+#Remove the NAs
+effect_data <- effect_data[complete.cases(effect_data), ]
+
+# Create the forest plot using ggplot2
+plot7 <- ggplot(effect_data, aes(x = term, y = estimate)) +
+  geom_point(size = 3) +
+  geom_errorbar(aes(ymin = estimate - std.error, ymax = estimate + std.error),
+                width = 0.2) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "red") +
+  labs(title = "Forest Plot of Effect Sizes",
+       x = "Coefficient",
+       y = "Effect Size") +
+  coord_flip() +  # Flip the axes to achieve the desired orientation
+  theme_minimal()
+
+Plot8 <- 
 
 ```
 
