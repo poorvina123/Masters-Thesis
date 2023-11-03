@@ -13,7 +13,3 @@ This project is currently a work in progress.
 * [R] (https://cran.r-project.org/bin/macosx/): Version 4.3.2
 No special requirements needed outside R studio.
 
-
-## License 
-
-Distributed under the GNU General Public License. View LICENSE.txt for more details
