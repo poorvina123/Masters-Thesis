@@ -1,22 +1,22 @@
-## Manipulation Datasheet 
+# Manipulation Datasheet 
 
-# Description of Dataset
+## Description of Dataset
 This dataset contains measurements taken at/for the sample points in the manipulation experiment. 
 
-# Format of the File
+## Format of the File
 The datasheet is in excel .xlsx format.
 
-# Contact People
+## Contact People
 Poorvi N Ashok : poorvi.ashok@gmail.com
 Emma Little: (?)
 
-# Date of Data Collection
+## Date of Data Collection
 18th May 2023  - 9th June 2023
 
-# Geographic Location of Data Collection
+## Geographic Location of Data Collection
 Silwood Park, Ascot (51-24’23.162N, 0-38’55.33W)
 
-# Variables 
+## Variables 
 Date: Date of Measurement. In dd/mm/yy format.
 
 Surveyor  = Name of the person surveying the sample point. Either Poorvi Ashok or Emma Little.
@@ -62,6 +62,8 @@ Light (On/Off): Status of the light treatment at the transect on the date of mea
 Sound (On/Off): Status of the sound treatment at the transect on the date of measurement. 0 for off and 1 for on.
 
 Treatment: Treatment being done that night starting 7 pm. 1 = light, 2 = sound, 3 = light & sound, 4 = control.
+
 Start Time: Time equipment is turned on. Measured in 24 hour time.
+
 End Time: Time equipment is turned off. Measured in 24 hour time.
 
