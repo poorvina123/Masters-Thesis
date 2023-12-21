@@ -84,3 +84,35 @@ Light_Average: Average of Lux_Night_1 and Lux_Night_2 (in lux).
 UV_Night_1: UV measurement 1 in the night using RS PRO mini pocket UV AB meter IM-213 (in milliwatts per square centimetre (mW/cm2)).
 
 UV_Night_2: UV measurement 2 in the night using RS PRO mini pocket UV AB meter IM-213 (in milliwatts per square centimetre (mW/cm2)).
+
+Time: Time at which the measurements were taken from the respective website (mentioned seperately for each variable)
+
+Air_temp: Air temperature in degrees C. source for Barnes: Weather station 7 Washington Road, SW13, https://wow.metoffice.gov.uk/observations/details/20230501semho4xexce65rj4rymrfqirmr and for Silwood: Weather station Sunninghill, https://wow.metoffice.gov.uk/observations/details/?site_id=4c3f2be3-8bf2-e911-b862-0003ff599e2a!
+
+Wind_speed: Wind speed in knots. source for Barnes: Weather station 7 Washington Road, SW13,  https://wow.metoffice.gov.uk/observations/details/20230501semho4xexce65rj4rymrfqirmr and for Silwood: Weather station Sunninghill, https://wow.metoffice.gov.uk/observations/details/?site_id=4c3f2be3-8bf2-e911-b862-0003ff599e2a!
+
+Rainfall_accumulation: Rainfall accumulation over whole day (mm). source for Barnes: Weather station 7 Washington Road, SW13,  https://wow.metoffice.gov.uk/observations/details/20230501semho4xexce65rj4rymrfqirmr and for Silwood: Weather station Sunninghill, https://wow.metoffice.gov.uk/observations/details/?site_id=4c3f2be3-8bf2-e911-b862-0003ff599e2a!
+
+Rainfall_last_3hrs: Rainfall accumulation over previous 3hrs (mm/3hrs). source for Barnes: Weather station 7 Washington Road, SW13,  https://wow.metoffice.gov.uk/observations/details/20230501semho4xexce65rj4rymrfqirmr and for Silwood: Weather station Sunninghill, https://wow.metoffice.gov.uk/observations/details/?site_id=4c3f2be3-8bf2-e911-b862-0003ff599e2a!
+
+Sun_rise: Time of sun rise on date of sample. Source for Barnes: https://www.timeanddate.com/sun/uk/london and for Silwood:  https://www.timeanddate.com/sun/uk/reading!
+
+Sun_set: Time of sun set on date of sample. Source for Barnes: https://www.timeanddate.com/sun/uk/london and for Silwood: https://www.timeanddate.com/sun/uk/reading!
+
+Moon_rise: Time of moon rise on date of sample. Source for Barnes: https://www.timeanddate.com/moon/uk/london and for Silwood:  https://www.timeanddate.com/moon/uk/reading!
+
+Moon_set: Time of moon set on date of sample. Source for Barnes: https://www.timeanddate.com/moon/uk/london and for Silwood:  https://www.timeanddate.com/moon/uk/reading!
+
+Moon_illumination: Percentage illuminance of moon when passing meridian; Source for Barnes: https://www.timeanddate.com/moon/phases/uk/london and for Silwood:  https://www.timeanddate.com/moon/phases/uk/reading!
+
+Mean_temp_day: Mean day temperature in degrees C, between 06:00hrs and 21:00hrs, source for Barnes: Weather station 7 Washington Road, SW13,  https://wow.metoffice.gov.uk/observations/details/20230501semho4xexce65rj4rymrfqirmr and for Silwood: Weather station Sunninghill, https://wow.metoffice.gov.uk/observations/details/?site_id=4c3f2be3-8bf2-e911-b862-0003ff599e2a!
+
+Mean_temp_night: Mean night temperature in degrees C, between 21:00hrs and 06:00hrs, source for Barnes: Weather station 7 Washington Road, SW13,  https://wow.metoffice.gov.uk/observations/details/20230501semho4xexce65rj4rymrfqirmr and for Silwood: Weather station Sunninghill, https://wow.metoffice.gov.uk/observations/details/?site_id=4c3f2be3-8bf2-e911-b862-0003ff599e2a!
+
+Mean_wind_speed_day: Mean day wind speed in knots, between 06:00hrs and 21:00hrs, source for Barnes: Weather station 7 Washington Road, SW13,  https://wow.metoffice.gov.uk/observations/details/20230501semho4xexce65rj4rymrfqirmr and for Silwood: Weather station Sunninghill, https://wow.metoffice.gov.uk/observations/details/?site_id=4c3f2be3-8bf2-e911-b862-0003ff599e2a!
+
+Mean_wind_speed_night: Mean night wind speed in knots, between 21:00hrs and 06:00hrs, source for Barnes: Weather station 7 Washington Road, SW13,  https://wow.metoffice.gov.uk/observations/details/20230501semho4xexce65rj4rymrfqirmr and for Silwood: Weather station Sunninghill, https://wow.metoffice.gov.uk/observations/details/?site_id=4c3f2be3-8bf2-e911-b862-0003ff599e2a!
+
+Mean_rainfall_last_3hrs_day: Mean day rainfall accumulation over previous 3hrs (mm/3hrs), between 06:00hrs and 21:00hrs, source for Barnes: Weather station 7 Washington Road, SW13,  https://wow.metoffice.gov.uk/observations/details/20230501semho4xexce65rj4rymrfqirmr and for Silwood: Weather station Sunninghill, https://wow.metoffice.gov.uk/observations/details/?site_id=4c3f2be3-8bf2-e911-b862-0003ff599e2a!
+
+Mean_rainfall_last_3hrs_night: Mean night rainfall accumulation over previous 3hrs (mm/3hrs), between 21:00hrs and 06:00hrs, source for Barnes: Weather station 7 Washington Road, SW13,  https://wow.metoffice.gov.uk/observations/details/20230501semho4xexce65rj4rymrfqirmr and for Silwood: Weather station Sunninghill, https://wow.metoffice.gov.uk/observations/details/?site_id=4c3f2be3-8bf2-e911-b862-0003ff599e2a!
