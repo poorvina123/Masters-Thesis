@@ -6,6 +6,13 @@ The dataset 'Empirical_Data_Total' contains the output from BirdNET which is a n
 ## Format of the File 
 Both the datasets are in the format of a .csv file. 
 
+## Date of Data Collection
+18th May 2023  - 9th June 2023
+
+## Geographic Location of Data Collection
+Silwood Park, Ascot (51-24’23.162N, 0-38’55.33W)
+Barnes Common, London (51-27’36’’N, 0-14’23.9994’’W)
+
 ## Contact People
 Poorvi Ashok: poorvi.ashok@gmail.com
 
