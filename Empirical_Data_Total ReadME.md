@@ -1,10 +1,10 @@
-# Empirical Data Total
+# Empirical Data Total/Empirical Data Total 0.8
 
 ## Description of Dataset 
-This dataset contains the output from BirdNET which is a neural network through which the audio data was collected was parsed through. 
+The dataset 'Empirical_Data_Total' contains the output from BirdNET which is a neural network through which the collected audio data was parsed through. The dataset 'Empirical_Data_Total_0.8' contains the ouput from BirdNET, with a confidence greater than 0.8.
 
 ## Format of the File 
-This dataset is in the format of a .csv file. 
+Both the datasets are in the format of a .csv file. 
 
 ## Contact People
 Poorvi Ashok: poorvi.ashok@gmail.com
