@@ -1,4 +1,4 @@
-# Manipulation Datasheet 
+# Empirical Datasheet 
 
 ## Description of Dataset
 This dataset contains measurements taken at/for the sample points in the manipulation experiment. 
@@ -11,10 +11,12 @@ Poorvi N Ashok : poorvi.ashok@gmail.com
 Emma Little: (?)
 
 ## Date of Data Collection
-18th May 2023  - 9th June 2023
+2nd May 2023 - 15th May 2023
 
 ## Geographic Location of Data Collection
 Silwood Park, Ascot (51-24’23.162N, 0-38’55.33W)
+
+Barnes Common, London (51-27’36’’N, 0-14’23.9994’’W)
 
 ## Variables 
 Date: Date of Measurement. In dd/mm/yy format.
