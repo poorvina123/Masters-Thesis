@@ -3,13 +3,13 @@
 ## Description of Dataset 
 The dataset 'Empirical_Data_Total' contains the output from BirdNET which is a neural network through which the collected audio data was parsed through. 
 
-The dataset 'Empirical_Data_Total_0.8' contains the ouput from BirdNET, with a confidence greater than 0.8.
+The dataset 'Empirical_Data_Total_0.8' contains the ouput from BirdNET, which had a confidence greater than 0.8.
 
 ## Format of the File 
 Both the datasets are in the format of a .csv file. 
 
 ## Date of Data Collection
-18th May 2023  - 9th June 2023
+2nd May 2023 - 15th May 2023
 
 ## Geographic Location of Data Collection
 Silwood Park, Ascot (51-24’23.162N, 0-38’55.33W)
@@ -28,8 +28,8 @@ Scientific.name: The scientific name of the identified bird.
 
 Common.name: The common name of the identified bird in english. 
 
-Confidence: The confidence with which the neural network has identified the bird call. 
+Confidence: The confidence with which the neural network identified the bird call. 
 
-Date_Time: The date and time in which the bird call was identified, obtained from data in the raw audio file. 
+Date_Time: The date and time for which the bird call was identified, obtained from data in the raw audio file. 
 
 Site: The sample point from which the bird call was identified. 
