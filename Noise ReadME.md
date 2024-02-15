@@ -22,4 +22,4 @@ site: Sample point in the study for which the rms amplitude of noise was measure
 
 date_time: Date and time of the file for which the rms amplitude was measured. Obtained from the name of the raw audio files. 
 
-ampl_mean: The rms amlitude of noise. Obtained by subsetting 0-2 KHz from the raw audio files. 
+ampl_mean: The rms amplitude of noise. Obtained by subsetting 0-2 KHz from the raw audio files. 
