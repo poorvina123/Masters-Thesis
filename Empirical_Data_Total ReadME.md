@@ -3,7 +3,7 @@
 ## Description of Dataset 
 The dataset 'Empirical_Data_Total' contains the output from BirdNET which is a neural network through which the collected audio data from the empirical study was parsed through. 
 
-The dataset 'Empirical_Data_Total_0.8' contains the ouput from BirdNET for the empricial study, which had a confidence greater than 0.8.
+The dataset 'Empirical_Data_Total_0.8' contains the ouput from BirdNET for the empiricial study, which had a confidence greater than 0.8.
 
 The dataset 'expt_combined' contains the output from BirdNET for the manipulation experiment. 
 
@@ -36,6 +36,6 @@ Common.name: The common name of the identified bird in english.
 
 Confidence: The confidence with which the neural network identified the bird call. 
 
-Date_Time: The date and time for which the bird call was identified, obtained from data in the raw audio file. 
+Date_Time: The date and time for which the bird call was identified, obtained from the name of the raw audio file. 
 
 Site: The sample point from which the bird call was identified. 
