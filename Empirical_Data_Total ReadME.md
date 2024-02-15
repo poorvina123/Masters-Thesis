@@ -1,15 +1,21 @@
-# Empirical Data Total/Empirical Data Total 0.8
+# Empirical Data Total/Empirical Data Total 0.8/Expt Combined/Expt Data 0.8
 
 ## Description of Dataset 
-The dataset 'Empirical_Data_Total' contains the output from BirdNET which is a neural network through which the collected audio data was parsed through. 
+The dataset 'Empirical_Data_Total' contains the output from BirdNET which is a neural network through which the collected audio data from the empirical study was parsed through. 
 
-The dataset 'Empirical_Data_Total_0.8' contains the ouput from BirdNET, which had a confidence greater than 0.8.
+The dataset 'Empirical_Data_Total_0.8' contains the ouput from BirdNET for the empricial study, which had a confidence greater than 0.8.
+
+The dataset 'expt_combined' contains the output from BirdNET for the manipulation experiment. 
+
+The dataset 'expt_data_0.8' contains the output from BirdNET for the manipulation experiment, which had a confidence greater than 0.8.
 
 ## Format of the File 
-Both the datasets are in the format of a .csv file. 
+All the datasets are in the format of a .csv file. 
 
 ## Date of Data Collection
 2nd May 2023 - 15th May 2023
+
+18th May 2023  - 8th June 2023
 
 ## Geographic Location of Data Collection
 Silwood Park, Ascot (51-24’23.162N, 0-38’55.33W)
